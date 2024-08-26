@@ -130,7 +130,7 @@ def ipadapter_model_loader(file):
     model = comfy.utils.load_torch_file(file, safe_load=True)
 
     if file.lower().endswith(".safetensors"):
-        st_model = {"image_proj": {}, "ip_adapter": {}}
+        st_model = {"image_proj": {}, "ip_adapter": {}, "file_name": os.path.basename(file)}
         for key in model.keys():
             if key.startswith("image_proj."):
                 st_model["image_proj"][key.replace("image_proj.", "")] = model[key]

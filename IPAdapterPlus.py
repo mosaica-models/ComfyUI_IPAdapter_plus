@@ -208,6 +208,9 @@ def set_model_patch_replace(model, patch_kwargs, key):
     else:
         to["patches_replace"]["attn2"][key].add(ipadapter_attention, **patch_kwargs)
 
+
+_ipa = {}
+
 def ipadapter_execute(model,
                       ipadapter,
                       clipvision,
@@ -234,6 +237,7 @@ def ipadapter_execute(model,
                       composition_boost=None,
                       enhance_tiles=1,
                       enhance_ratio=1.0,):
+
     device = model_management.get_torch_device()
     dtype = model_management.unet_dtype()
     if dtype not in [torch.float32, torch.float16, torch.bfloat16]:
@@ -355,6 +359,7 @@ def ipadapter_execute(model,
         image = torch.stack(image)
         del image_iface, face
 
+
     if image is not None:
         img_cond_embeds = encode_image_masked(clipvision, image, batch_size=encode_batch_size, tiles=enhance_tiles, ratio=enhance_ratio, clipvision_size=clipvision_size)
         if image_composition is not None:
@@ -390,6 +395,7 @@ def ipadapter_execute(model,
         del pos_embed, neg_embed
     else:
         raise Exception("Images or Embeds are required")
+
 
     # ensure that cond and uncond have the same batch size
     img_uncond_embeds = tensor_to_size(img_uncond_embeds, img_cond_embeds.shape[0])
@@ -438,21 +444,34 @@ def ipadapter_execute(model,
     if is_kwai_kolors_faceid and hasattr(model.model, "diffusion_model") and hasattr(model.model.diffusion_model, "encoder_hid_proj"):
         encoder_hid_proj = model.model.diffusion_model.encoder_hid_proj.state_dict()
 
-    ipa = IPAdapter(
-        ipadapter,
-        cross_attention_dim=cross_attention_dim,
-        output_cross_attention_dim=output_cross_attention_dim,
-        clip_embeddings_dim=img_cond_embeds.shape[-1],
-        clip_extra_context_tokens=clip_extra_context_tokens,
-        is_sdxl=is_sdxl,
-        is_plus=is_plus,
-        is_full=is_full,
-        is_faceid=is_faceid,
-        is_portrait_unnorm=is_portrait_unnorm,
-        is_kwai_kolors=is_kwai_kolors,
-        encoder_hid_proj=encoder_hid_proj,
-        weight_kolors=weight_kolors
-    ).to(device, dtype=dtype)
+
+    global _ipa
+
+    ipa = _ipa.get(ipadapter["file_name"], None)
+
+    if ipa is None:
+        ipa = IPAdapter(
+            ipadapter,
+            cross_attention_dim=cross_attention_dim,
+            output_cross_attention_dim=output_cross_attention_dim,
+            clip_embeddings_dim=img_cond_embeds.shape[-1],
+            clip_extra_context_tokens=clip_extra_context_tokens,
+            is_sdxl=is_sdxl,
+            is_plus=is_plus,
+            is_full=is_full,
+            is_faceid=is_faceid,
+            is_portrait_unnorm=is_portrait_unnorm,
+            is_kwai_kolors=is_kwai_kolors,
+            encoder_hid_proj=encoder_hid_proj,
+            weight_kolors=weight_kolors
+        )
+        ipa=ipa.to(device, dtype=dtype)
+        _ipa[ipadapter["file_name"]] = ipa
+
+        import logging
+        logging.warning(f"-------------- IPAdapter model loaded: {ipadapter['file_name']}")
+
+
 
     if is_faceid and is_plus:
         cond = ipa.get_image_embeds_faceid_plus(face_cond_embeds, img_cond_embeds, weight_faceidv2, is_faceidv2, encode_batch_size)
@@ -465,6 +484,7 @@ def ipadapter_execute(model,
 
     cond = cond.to(device, dtype=dtype)
     uncond = uncond.to(device, dtype=dtype)
+
 
     cond_alt = None
     if img_comp_cond_embeds is not None:
@@ -518,6 +538,7 @@ def ipadapter_execute(model,
             patch_kwargs["module_key"] = str(number*2+1)
             set_model_patch_replace(model, patch_kwargs, ("middle", 0, index))
             number += 1
+
 
     return (model, image)
 
