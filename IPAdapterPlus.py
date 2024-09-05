@@ -469,7 +469,7 @@ def ipadapter_execute(model,
         _ipa[ipadapter["file_name"]] = ipa
 
         import logging
-        logging.warning(f"-------------- IPAdapter model loaded: {ipadapter['file_name']}")
+        logging.warning(f"! IPAdapter model loaded: {ipadapter['file_name']}")
 
 
 

@@ -294,6 +294,7 @@ def encode_image_masked_(clip_vision, image, mask=None, batch_size=0, clipvision
 
         # TODO: support for multiple masks
         if mask is not None:
+            mask = torch.clamp(mask, 0, 1)  
             pixel_values = pixel_values * mask.to(clip_vision.load_device)
 
         out = clip_vision.model(pixel_values=pixel_values, intermediate_output=-2)
