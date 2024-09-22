@@ -1595,6 +1595,9 @@ class IPAdapterSaveEmbeds:
             "embeds": ("EMBEDS",),
             "filename_prefix": ("STRING", {"default": "IP_embeds"})
             },
+            "optional": {
+                "insightface": ("INSIGHTFACE",),
+            }
         }
 
     RETURN_TYPES = ()
