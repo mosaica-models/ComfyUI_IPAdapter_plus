@@ -447,7 +447,11 @@ def ipadapter_execute(model,
 
     global _ipa
 
-    ipa = _ipa.get(ipadapter["file_name"], None)
+    file_name = "default"
+    if "file_name" in ipadapter:
+        file_name = ipadapter["file_name"]
+
+    ipa = _ipa.get(file_name, None)
 
     if ipa is None:
         ipa = IPAdapter(
@@ -466,11 +470,10 @@ def ipadapter_execute(model,
             weight_kolors=weight_kolors
         )
         ipa=ipa.to(device, dtype=dtype)
-        _ipa[ipadapter["file_name"]] = ipa
+        _ipa[file_name] = ipa
 
         import logging
-        logging.warning(f"! IPAdapter model loaded: {ipadapter['file_name']}")
-
+        logging.warning(f"IPAdapter model loaded: {file_name}")
 
 
     if is_faceid and is_plus:
